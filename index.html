@@ -1,0 +1,1638 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pallanguzhi State Machine</title>
+    <!-- Tailwind for basic layout scaffolding & nav -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-color: #F7F3EB;
+            --card-bg: #FFFDF9;
+            --text-dark: #3D2314;
+            --text-muted: #6B4D3A;
+            --accent-gold: #C79A63;
+            --accent-terracotta: #A54F3A;
+            --hero-bg-start: #A54F3A;
+            --hero-bg-end: #8A3F2E;
+        }
+
+        /* Background Styling */
+        body {
+            background-color: var(--bg-color);
+            background-image: repeating-linear-gradient(45deg, rgba(199, 154, 99, 0.03) 0, rgba(199, 154, 99, 0.03) 1px, transparent 1px, transparent 10px);
+            color: var(--text-dark);
+            font-family: 'Lora', serif;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+        }
+
+        h1, h2, h3, h4, h5, h6, .playfair {
+            font-family: 'Playfair Display', serif;
+        }
+
+        /* Navigation Overrides */
+        .nav-link {
+            position: relative;
+            font-weight: 500;
+            transition: color 0.2s ease;
+            font-family: 'Lora', serif;
+        }
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            bottom: -6px;
+            left: 0;
+            background-color: var(--accent-gold);
+            transition: width 0.3s ease;
+        }
+        .nav-link:hover::after {
+            width: 100%;
+        }
+
+        /* --- SECTION DIVIDER (Solid, Visible Line like TRINETRA) --- */
+        .section-divider {
+            width: 100%;
+            height: 1px;
+            /* Solid, slightly darker gold for clear visibility */
+            background-color: #D4B896; 
+            margin: 0 auto;
+            /* No gradient, no shadow - just a clean architectural line */
+        }
+
+        /* -------------------------------------------------------------
+           HERO: INITIATIVE TAGS
+           ------------------------------------------------------------- */
+        .initiative-strip {
+            display: flex; 
+            flex-direction: row; 
+            align-items: center; 
+            gap: 12px; 
+            width: 100%; 
+            margin-top: 30px; 
+            padding-top: 20px; 
+            border-top: 1px solid rgba(199, 154, 99, 0.3); 
+            flex-wrap: nowrap; 
+            overflow-x: auto;
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
+        .initiative-strip::-webkit-scrollbar {
+            display: none;
+        }
+        .initiative-label {
+            font-family: 'Lora', serif; 
+            font-size: 0.8rem; 
+            font-weight: 600; 
+            text-transform: uppercase; 
+            letter-spacing: 1.5px; 
+            color: var(--text-muted); 
+            margin-right: 5px; 
+            white-space: nowrap;
+        }
+        .initiative-pill {
+            background-color: var(--card-bg); 
+            border: 1px solid rgba(199, 154, 99, 0.3); 
+            color: var(--accent-terracotta); 
+            font-size: 0.75rem; 
+            font-weight: 600; 
+            text-transform: uppercase; 
+            letter-spacing: 1px; 
+            padding: 6px 16px; 
+            border-radius: 50px; 
+            transition: all 0.3s ease; 
+            white-space: nowrap;
+        }
+        .initiative-pill:hover {
+            background-color: var(--accent-terracotta); 
+            color: #FFFDF9; 
+            border-color: var(--accent-terracotta);
+        }
+
+        /* -------------------------------------------------------------
+           SHARED: HERITAGE BADGE (Headings)
+           ------------------------------------------------------------- */
+        .heritage-badge-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 80px;
+        }
+        .heritage-badge-text {
+            font-family: 'Playfair Display', serif;
+            font-weight: 700;
+            font-size: 3rem;
+            color: var(--text-dark);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+        .heritage-badge-line {
+            display: inline-block;
+            width: 80px;
+            height: 1px;
+            background-color: var(--accent-gold);
+            position: relative;
+        }
+        .heritage-badge-line::after {
+            content: '◆';
+            position: absolute;
+            font-size: 12px;
+            color: var(--accent-gold);
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        .heritage-badge-line.left::after { left: -14px; }
+        .heritage-badge-line.right::after { right: -14px; }
+
+
+        /* -------------------------------------------------------------
+           SECTION: THE CHALLENGE
+           ------------------------------------------------------------- */
+        .challenge-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 30px;
+            align-items: start;
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 0 30px;
+        }
+        .challenge-grid > :nth-child(2),
+        .challenge-grid > :nth-child(4) {
+            margin-top: 40px;
+        }
+        
+        .organic-card {
+            background: var(--card-bg);
+            border-radius: 60px 15px 60px 15px;
+            border: 1px solid rgba(199, 154, 99, 0.15);
+            box-shadow: 0 15px 35px rgba(61, 35, 20, 0.04), 0 5px 15px rgba(61, 35, 20, 0.02);
+            padding: 40px 30px;
+            text-align: left;
+            transition: transform 0.4s ease, box-shadow 0.4s ease;
+        }
+        .organic-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 45px rgba(61, 35, 20, 0.06), 0 10px 20px rgba(61, 35, 20, 0.03);
+        }
+        .organic-card-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.4rem;
+            color: var(--text-dark);
+            border-top: 2px solid var(--accent-gold);
+            padding-top: 15px;
+            display: inline-block;
+            margin-bottom: 12px;
+            margin-top: 20px;
+        }
+        .organic-card-text {
+            font-family: 'Lora', serif;
+            font-size: 1rem;
+            line-height: 1.7;
+            color: var(--text-muted);
+            margin: 0;
+        }
+
+        /* -------------------------------------------------------------
+           SECTION: SOLUTION (Heritage Artifact Table)
+           ------------------------------------------------------------- */
+        .table-wrapper {
+            background: var(--card-bg);
+            border-radius: 60px 15px 60px 15px;
+            box-shadow: 0 15px 35px rgba(61, 35, 20, 0.04), 0 5px 15px rgba(61, 35, 20, 0.02);
+            padding: 40px;
+            margin-top: 60px;
+            max-width: 1000px;
+            margin-left: auto;
+            margin-right: auto;
+            border: 1px solid rgba(199, 154, 99, 0.15);
+            overflow: hidden;
+        }
+        .heritage-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+        .heritage-table th {
+            background-color: rgba(165, 79, 58, 0.04);
+            color: var(--text-dark);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            font-family: 'Lora', serif;
+            font-weight: 600;
+            border-bottom: 2px solid var(--accent-gold);
+            padding: 20px 15px;
+            font-size: 0.9rem;
+        }
+        .heritage-table td {
+            padding: 20px 15px;
+            font-family: 'Lora', serif;
+            font-size: 1rem;
+            color: var(--text-muted);
+            border-bottom: 1px solid rgba(199, 154, 99, 0.2);
+        }
+        .heritage-table tr:last-child td {
+            border-bottom: none;
+        }
+        .heritage-table td:first-child {
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+        .heritage-table .hero-col {
+            background-color: rgba(165, 79, 58, 0.03);
+            color: var(--accent-terracotta);
+            font-weight: 600;
+        }
+
+        /* -------------------------------------------------------------
+           SECTION: KEY FEATURES
+           ------------------------------------------------------------- */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+            align-items: start;
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 30px;
+        }
+        .features-grid > :nth-child(2),
+        .features-grid > :nth-child(5) {
+            margin-top: 40px;
+        }
+        .feature-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.3rem;
+            color: var(--text-dark);
+            border-top: 2px solid var(--accent-gold);
+            padding-top: 12px;
+            display: inline-block;
+            margin-bottom: 10px;
+            margin-top: 16px;
+        }
+        .feature-text {
+            font-family: 'Lora', serif;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            color: var(--text-muted);
+            margin: 0;
+        }
+
+        /* -------------------------------------------------------------
+           SECTION: UNDER THE WOOD (Technology)
+           ------------------------------------------------------------- */
+        .hardware-layout {
+            display: grid;
+            grid-template-columns: 1.1fr 0.9fr;
+            gap: 40px;
+            align-items: start;
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 30px;
+        }
+        /* Left Column */
+        .hardware-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+        .hardware-card {
+            background: var(--card-bg);
+            border-radius: 40px 10px 40px 10px;
+            box-shadow: 0 10px 25px rgba(61, 35, 20, 0.04);
+            border: 1px solid rgba(199, 154, 99, 0.15);
+            padding: 25px;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            transition: transform 0.3s ease;
+        }
+        .hardware-card:hover {
+            transform: translateY(-5px);
+        }
+        .hardware-img-wrapper {
+            width: 120px;
+            height: 100px;
+            flex-shrink: 0;
+            border-radius: 20px 5px 20px 5px;
+            overflow: hidden;
+            background-color: #f0f0f0;
+            border: 1px solid rgba(199, 154, 99, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .hardware-img-wrapper img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center;
+        }
+        .hw-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.2rem;
+            color: var(--text-dark);
+            border-top: 2px solid var(--accent-gold);
+            padding-top: 8px;
+            display: inline-block;
+            margin-bottom: 8px;
+        }
+        .hw-text {
+            font-family: 'Lora', serif;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            color: var(--text-muted);
+            margin: 0;
+        }
+        
+        /* Right Column */
+        .state-logic-box {
+            background: var(--card-bg);
+            border: 2px solid var(--accent-terracotta);
+            border-radius: 40px 10px 40px 10px;
+            box-shadow: 0 15px 35px rgba(61, 35, 20, 0.05);
+            padding: 40px;
+        }
+        .logic-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.5rem;
+            color: var(--text-dark);
+            border-bottom: 2px solid var(--accent-gold);
+            padding-bottom: 10px;
+            display: inline-block;
+            margin-bottom: 30px;
+        }
+        .logic-step {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+        .logic-step:last-child { margin-bottom: 0; }
+        .logic-badge {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            border: 1px solid var(--accent-terracotta);
+            color: var(--accent-terracotta);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Playfair Display', serif;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+        .logic-step-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.1rem;
+            color: var(--text-dark);
+            margin: 0 0 4px 0;
+        }
+        .logic-step-text {
+            font-family: 'Lora', serif;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin: 0;
+        }
+
+        /* -------------------------------------------------------------
+           SECTION: CASE STUDY
+           ------------------------------------------------------------- */
+        .case-study-header {
+            max-width: 850px;
+            margin: 0 auto 50px auto;
+            text-align: left;
+            padding: 0 30px;
+        }
+        .cs-h1 {
+            font-family: 'Playfair Display', serif;
+            font-weight: 700;
+            font-size: 3rem;
+            color: var(--text-dark);
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+        }
+        .cs-subtitle {
+            font-family: 'Lora', serif;
+            font-size: 1.1rem;
+            line-height: 1.6;
+            color: var(--text-muted);
+            margin: 0;
+        }
+        .case-study-grid {
+            display: grid;
+            grid-template-columns: 1.1fr 0.9fr;
+            gap: 40px;
+            align-items: start;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 30px;
+        }
+        .evidence-box {
+            background: var(--card-bg);
+            border-radius: 40px 10px 40px 10px;
+            box-shadow: 0 10px 25px rgba(61, 35, 20, 0.04);
+            border: 1px solid rgba(199, 154, 99, 0.15);
+            padding: 20px;
+        }
+        .video-frame {
+            width: 100%;
+            height: 450px;
+            border-radius: 20px 5px 20px 5px;
+            overflow: hidden;
+            background-color: #1a1a1a;
+            position: relative;
+        }
+        .video-frame img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .video-caption {
+            position: absolute;
+            bottom: 15px;
+            left: 15px;
+            background: rgba(61, 35, 20, 0.7);
+            padding: 8px 15px;
+            border-radius: 20px;
+            color: #FFFDF9;
+            font-size: 0.9rem;
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-family: 'Lora', serif;
+        }
+        @keyframes pulse-red {
+            0% { box-shadow: 0 0 0 0 rgba(165,79,58, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(165,79,58, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(165,79,58, 0); }
+        }
+        .live-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--accent-terracotta);
+            border-radius: 50%;
+            display: inline-block;
+            animation: pulse-red 2s infinite;
+        }
+        .insight-column {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .insight-card {
+            background: linear-gradient(145deg, #FFFDF9 0%, #FDF8F2 100%);
+            border-radius: 40px 10px 40px 10px;
+            box-shadow: 0 10px 25px rgba(61, 35, 20, 0.04);
+            border: 1px solid rgba(199, 154, 99, 0.15);
+            padding: 30px;
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+            transition: all 0.3s ease;
+        }
+        .insight-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(61, 35, 20, 0.08);
+        }
+        .insight-icon-badge {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: rgba(165, 79, 58, 0.08);
+            border: 1px solid rgba(165, 79, 58, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .insight-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.25rem;
+            color: var(--text-dark);
+            margin: 0 0 8px 0;
+        }
+        .insight-text {
+            font-family: 'Lora', serif;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            color: var(--text-muted);
+            margin: 0;
+        }
+
+        /* -------------------------------------------------------------
+           SECTION: IMPACT (Bento Grid)
+           ------------------------------------------------------------- */
+        .bento-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 25px;
+            grid-auto-rows: minmax(180px, auto);
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 30px;
+        }
+        .bento-card {
+            background: linear-gradient(145deg, #FFFDF9 0%, #FDF8F2 100%);
+            border-radius: 50px 15px 50px 15px;
+            box-shadow: 0 10px 25px rgba(61, 35, 20, 0.04);
+            border: 1px solid rgba(199, 154, 99, 0.15);
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            transition: all 0.3s ease;
+        }
+        .bento-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(61, 35, 20, 0.08);
+        }
+        .bento-hero {
+            grid-column: span 2;
+            background: linear-gradient(145deg, var(--hero-bg-start) 0%, var(--hero-bg-end) 100%);
+            border: 1px solid rgba(199, 154, 99, 0.4);
+        }
+        .bento-icon-badge {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background-color: rgba(165, 79, 58, 0.08);
+            border: 1px solid rgba(165, 79, 58, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            flex-shrink: 0;
+        }
+        .bento-hero .bento-icon-badge {
+            background-color: rgba(255, 253, 249, 0.15);
+            border: 1px solid rgba(255, 253, 249, 0.3);
+        }
+        .bento-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.2rem;
+            color: var(--text-dark);
+            margin: 0 0 8px 0;
+        }
+        .bento-text {
+            font-family: 'Lora', serif;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            color: var(--text-muted);
+            margin: 0;
+        }
+        .bento-hero .bento-title {
+            font-size: 1.5rem;
+            color: #FFFDF9;
+        }
+        .bento-hero .bento-text {
+            font-size: 1rem;
+            color: #FFFDF9;
+        }
+
+        /* -------------------------------------------------------------
+           SECTION: TEAM
+           ------------------------------------------------------------- */
+        .team-heading {
+            font-family: 'Playfair Display', serif;
+            font-weight: 700;
+            font-size: 2.2rem;
+            color: var(--text-dark);
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            text-align: center;
+            margin-bottom: 50px;
+        }
+        .team-leader-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 80px;
+        }
+        .team-card {
+            background: var(--card-bg);
+            border-radius: 40px 10px 40px 10px;
+            box-shadow: 0 15px 35px rgba(61, 35, 20, 0.05);
+            border: 1px solid rgba(199, 154, 99, 0.15);
+            padding: 25px 15px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+        .team-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 45px rgba(61, 35, 20, 0.1);
+        }
+        .team-leader-card {
+            max-width: 400px;
+            padding: 35px 25px;
+        }
+        .core-team-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 30px;
+        }
+        .team-photo-frame {
+            width: 100%;
+            aspect-ratio: 3/4;
+            border-radius: 20px 5px 20px 5px;
+            overflow: hidden;
+            background-color: #FFFFFF;
+            border: 2px solid rgba(199, 154, 99, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        .team-photo-frame img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: top center;
+            display: block;
+        }
+        .team-leader-card .team-photo-frame {
+            width: 180px;
+            height: 220px;
+            aspect-ratio: auto;
+        }
+        .team-name {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.2rem;
+            color: var(--text-dark);
+            margin: 0 0 5px 0;
+            line-height: 1.2;
+        }
+        .team-leader-card .team-name {
+            font-size: 1.6rem;
+        }
+        .team-role {
+            font-family: 'Lora', serif;
+            font-size: 0.85rem;
+            color: var(--accent-terracotta);
+            font-weight: 600;
+            margin: 0 0 5px 0;
+            line-height: 1.4;
+        }
+        .team-inst {
+            font-family: 'Lora', serif;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin: 0 0 15px 0;
+        }
+        .team-skill-tags {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 6px;
+            margin-top: auto;
+        }
+        .team-skill-pill {
+            background-color: rgba(199, 154, 99, 0.1);
+            border: 1px solid rgba(199, 154, 99, 0.3);
+            color: var(--text-dark);
+            font-size: 0.65rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 4px 10px;
+            border-radius: 50px;
+            white-space: nowrap;
+        }
+        .team-leader-card .team-skill-pill {
+            font-size: 0.7rem;
+            padding: 5px 12px;
+        }
+
+        /* -------------------------------------------------------------
+           SECTION: PROJECT MENTORS
+           ------------------------------------------------------------- */
+        .mentors-badge-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        .mentors-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background-color: rgba(199, 154, 99, 0.15);
+            border: 1px solid rgba(199, 154, 99, 0.3);
+            padding: 8px 18px;
+            border-radius: 50px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--accent-terracotta);
+            font-family: 'Lora', serif;
+        }
+        .mentors-header {
+            text-align: center;
+            max-width: 700px;
+            margin: 0 auto 60px auto;
+            padding: 0 30px;
+        }
+        .mentors-h2 {
+            font-family: 'Playfair Display', serif;
+            font-weight: 700;
+            font-size: 2.8rem;
+            color: var(--text-dark);
+            margin: 0 0 15px 0;
+        }
+        .mentors-subtitle {
+            font-family: 'Lora', serif;
+            font-size: 1.05rem;
+            line-height: 1.6;
+            color: var(--text-muted);
+            margin: 0;
+        }
+        .mentors-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 40px;
+            justify-content: center;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 30px;
+        }
+        .mentor-card {
+            background: var(--card-bg);
+            border-radius: 50px 15px 50px 15px;
+            box-shadow: 0 15px 35px rgba(61, 35, 20, 0.05);
+            border: 1px solid rgba(199, 154, 99, 0.15);
+            padding: 40px 30px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+        .mentor-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 45px rgba(61, 35, 20, 0.1);
+        }
+        .portrait-frame {
+            width: 180px;
+            height: 220px;
+            border-radius: 20px 5px 20px 5px;
+            overflow: hidden;
+            border: 4px solid var(--accent-terracotta);
+            padding: 4px;
+            background-color: #FFFFFF;
+            margin-bottom: 20px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .portrait-frame::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            border: 1px solid rgba(199, 154, 99, 0.5);
+            border-radius: 15px 3px 15px 3px;
+            pointer-events: none;
+            z-index: 2;
+        }
+        .portrait-frame img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: top center;
+            border-radius: 15px 3px 15px 3px;
+            position: relative;
+            z-index: 1;
+            display: block;
+        }
+        .mentor-role-pill {
+            background-color: rgba(165, 79, 58, 0.08);
+            color: var(--accent-terracotta);
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            padding: 6px 16px;
+            border-radius: 50px;
+            margin-bottom: 15px;
+            display: inline-block;
+            font-family: 'Lora', serif;
+        }
+        .mentor-name {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.6rem;
+            color: var(--text-dark);
+            margin: 0 0 5px 0;
+            line-height: 1.2;
+        }
+        .mentor-title-txt {
+            font-family: 'Lora', serif;
+            font-size: 1rem;
+            color: var(--accent-terracotta);
+            font-weight: 600;
+            margin: 0 0 8px 0;
+        }
+        .mentor-inst {
+            font-family: 'Lora', serif;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin: 0;
+        }
+
+
+        /* -------------------------------------------------------------
+           RESPONSIVE RULES
+           ------------------------------------------------------------- */
+        @media (max-width: 1024px) {
+            .challenge-grid, .features-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .challenge-grid > :nth-child(2), .challenge-grid > :nth-child(4),
+            .features-grid > :nth-child(2), .features-grid > :nth-child(5) {
+                margin-top: 0;
+            }
+            .features-grid > :nth-child(odd) {
+                margin-top: 30px;
+            }
+            
+            .bento-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .bento-hero {
+                grid-column: span 2;
+            }
+            
+            .core-team-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+        @media (max-width: 900px) {
+            .hardware-layout, .case-study-grid {
+                grid-template-columns: 1fr;
+            }
+            .hardware-card {
+                flex-direction: column;
+                text-align: center;
+            }
+            .hardware-img-wrapper {
+                width: 100%;
+                height: 180px;
+            }
+            .cs-h1 { font-size: 2.2rem; }
+            .video-frame { height: 300px; }
+        }
+        @media (max-width: 768px) {
+            .challenge-grid, .features-grid, .bento-grid, .mentors-grid {
+                grid-template-columns: 1fr;
+            }
+            .bento-hero { grid-column: span 1; }
+            .features-grid > :nth-child(odd) { margin-top: 0; }
+            
+            .heritage-badge-text { font-size: 2.2rem; }
+            .heritage-badge-line { display: none; }
+            .organic-card, .table-wrapper, .bento-card, .mentor-card, .team-card {
+                border-radius: 30px 8px 30px 8px;
+            }
+            .mentors-h2 { font-size: 2.2rem; }
+            .table-wrapper { padding: 20px; overflow-x: auto; }
+            
+            .initiative-pill { font-size: 0.7rem; padding: 5px 12px; }
+            
+            .core-team-grid { grid-template-columns: repeat(2, 1fr); }
+            .team-heading { font-size: 1.8rem; }
+        }
+        @media (max-width: 500px) {
+            .insight-card {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .core-team-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Utilities */
+        .mobile-menu-overlay { transition: opacity 0.3s ease-in-out; }
+    </style>
+</head>
+<body class="antialiased overflow-x-hidden selection:bg-[var(--accent-terracotta)] selection:text-white">
+
+    <!-- Dark Warm Brown Navigation Bar -->
+    <nav class="sticky top-0 z-50 bg-[#3D2314] shadow-lg py-4 border-b border-[#2A170C]">
+        <div class="max-w-7xl mx-auto px-6 lg:px-8 flex justify-between items-center">
+            <!-- Left: Logo -->
+            <a href="#" class="flex items-center">
+                <img src="assets/logo.jpg" alt="Pallanguzhi Logo" class="h-12 w-auto object-contain rounded-md drop-shadow-sm bg-[var(--card-bg)] p-1">
+            </a>
+            
+            <!-- Desktop Menu Items -->
+            <div class="hidden lg:flex space-x-8 text-sm tracking-wide">
+                <a href="#problem" class="nav-link text-[var(--bg-color)] hover:text-white">Problem</a>
+                <a href="#solution" class="nav-link text-[var(--bg-color)] hover:text-white">Solution</a>
+                <a href="#features" class="nav-link text-[var(--bg-color)] hover:text-white">Features</a>
+                <a href="#technology" class="nav-link text-[var(--bg-color)] hover:text-white">Technology</a>
+                <a href="#case-study" class="nav-link text-[var(--bg-color)] hover:text-white">Case Study</a>
+                <a href="#impact" class="nav-link text-[var(--bg-color)] hover:text-white">Impact</a>
+                <a href="#team" class="nav-link text-[var(--bg-color)] hover:text-white">Team</a>
+                <a href="#mentor" class="nav-link text-[var(--bg-color)] hover:text-white">Mentor</a>
+            </div>
+            
+            <!-- Mobile Menu Button (Hamburger) -->
+            <div class="lg:hidden flex items-center">
+                <button id="hamburger-btn" class="text-[var(--bg-color)] hover:text-[var(--accent-gold)] focus:outline-none transition-colors">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Mobile Menu Overlay -->
+    <div id="mobile-menu" class="fixed inset-0 bg-[#3D2314] z-[100] flex flex-col hidden mobile-menu-overlay opacity-0">
+        <div class="flex justify-between items-center p-6 border-b border-white/10">
+            <a href="#" id="mobile-logo-link">
+                <img src="assets/logo.jpg" alt="Logo" class="h-10 w-auto rounded p-1 bg-white">
+            </a>
+            <button id="close-menu" class="text-[var(--bg-color)] hover:text-[var(--accent-gold)] transition-colors">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        <div class="flex flex-col items-center justify-center flex-1 space-y-8 text-xl font-medium overflow-y-auto py-10 playfair">
+            <a href="#problem" class="mobile-link text-[var(--bg-color)] hover:text-[var(--accent-gold)] transition-colors">Problem</a>
+            <a href="#solution" class="mobile-link text-[var(--bg-color)] hover:text-[var(--accent-gold)] transition-colors">Solution</a>
+            <a href="#features" class="mobile-link text-[var(--bg-color)] hover:text-[var(--accent-gold)] transition-colors">Features</a>
+            <a href="#technology" class="mobile-link text-[var(--bg-color)] hover:text-[var(--accent-gold)] transition-colors">Technology</a>
+            <a href="#case-study" class="mobile-link text-[var(--bg-color)] hover:text-[var(--accent-gold)] transition-colors">Case Study</a>
+            <a href="#impact" class="mobile-link text-[var(--bg-color)] hover:text-[var(--accent-gold)] transition-colors">Impact</a>
+            <a href="#team" class="mobile-link text-[var(--bg-color)] hover:text-[var(--accent-gold)] transition-colors">Team</a>
+            <a href="#mentor" class="mobile-link text-[var(--bg-color)] hover:text-[var(--accent-gold)] transition-colors">Mentor</a>
+        </div>
+    </div>
+
+    <!-- Hero Section -->
+    <section class="relative pt-12 pb-24 overflow-hidden">
+        <div class="max-w-7xl mx-auto px-6 lg:px-8 grid lg:grid-cols-2 gap-16 items-center">
+            
+            <!-- Left Side -->
+            <div class="flex flex-col items-start z-10">
+                <!-- Small badge -->
+                <span class="inline-flex items-center px-4 py-1.5 rounded-full text-xs font-bold tracking-widest bg-[rgba(199,154,99,0.15)] border border-[rgba(199,154,99,0.3)] text-[var(--accent-terracotta)] uppercase mb-6" style="font-family: 'Lora', serif;">
+                    AICTE • MIC – STUDENT INNOVATION
+                </span>
+                
+                <!-- Large Logo -->
+                <img src="assets/logo.jpg" alt="Pallanguzhi Brand" class="h-40 sm:h-48 lg:h-56 w-auto object-contain rounded-xl drop-shadow-md mb-8">
+                
+                <!-- Main heading (Rich deep terracotta color, different from navbar brown) -->
+                <h1 class="text-4xl sm:text-5xl lg:text-5xl xl:text-6xl font-extrabold leading-tight mb-6 playfair" style="color: var(--accent-terracotta);">
+                    Pallanguzhi : The Next-Generation Strategy Game
+                </h1>
+                
+                <!-- Short description -->
+                <p class="text-lg leading-relaxed mb-10 max-w-xl" style="color: var(--text-muted);">
+                    A foldable rosewood Pallanguzhi board that guides every turn with light, catches every mistake in real time, and keeps a 2,000-year-old Tamil tradition alive — one bead at a time.
+                </p>
+                
+                <!-- One button -->
+                <a href="#solution" class="inline-flex justify-center items-center px-8 py-4 text-base font-semibold text-[#FFFDF9] bg-[#3D2314] rounded-full hover:bg-[var(--accent-terracotta)] shadow-lg transition-all duration-300 group" style="font-family: 'Lora', serif;">
+                    See How It Works 
+                    <svg class="w-4 h-4 ml-2 group-hover:translate-y-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
+                </a>
+                
+                <!-- NEW: Initiative Tags Strip -->
+                <div class="initiative-strip">
+                    <span class="initiative-label">Initiative Tags:</span>
+                    <span class="initiative-pill">Hardware</span>
+                    <span class="initiative-pill">Toys and Games</span>
+                    <span class="initiative-pill">Nexttech 007</span>
+                </div>
+            </div>
+            
+            <!-- Right Side (Bigger, more prominent, rotated board image) -->
+            <div class="relative w-full z-10 flex justify-center lg:justify-end mt-10 lg:mt-0">
+                <div class="absolute inset-0 bg-gradient-to-tr from-[rgba(199,154,99,0.2)] to-transparent rounded-[2.5rem] transform rotate-3 scale-110"></div>
+                <!-- Clean soft rounded card with subtle shadow -->
+                <div class="relative p-3 rounded-[3rem] shadow-2xl border border-[rgba(199,154,99,0.3)] w-[110%] max-w-none right-[-5%] bg-[var(--card-bg)]" style="transform: scale(1.05) rotate(-2deg);">
+                    <img src="assets/board.png" alt="Glowing Pallanguzhi Board" class="w-full h-auto rounded-[2.5rem] object-cover shadow-inner">
+                </div>
+            </div>
+            
+        </div>
+    </section>
+
+    <!-- NEW: Solid Section Divider -->
+    <div class="section-divider"></div>
+
+    <!-- 1. The Challenge Section -->
+    <section id="problem" class="py-24 pt-32 -mt-10">
+        <!-- Heading -->
+        <div class="heritage-badge-container">
+            <span class="heritage-badge-line left"></span>
+            <span class="heritage-badge-text">THE CHALLENGE</span>
+            <span class="heritage-badge-line right"></span>
+        </div>
+        
+        <!-- Grid -->
+        <div class="challenge-grid">
+            <!-- Card 1 -->
+            <div class="organic-card">
+                <svg stroke="var(--accent-terracotta)" stroke-width="1.5" fill="none" width="42px" viewBox="0 0 24 24" class="mb-2">
+                    <path d="M12 2v20M8 2h8M8 22h8M10 6l4 12M14 6l-4 12" stroke-linejoin="round"/>
+                </svg>
+                <span class="organic-card-title">Fading Heritage</span>
+                <p class="organic-card-text">Traditional games are rapidly losing ground to digital entertainment, threatening a 2,000-year-old cultural legacy.</p>
+            </div>
+            
+            <!-- Card 2 -->
+            <div class="organic-card">
+                <svg stroke="var(--accent-terracotta)" stroke-width="1.5" fill="none" width="42px" viewBox="0 0 24 24" class="mb-2">
+                    <path d="M4 12s4-8 8-8 8 8 8 8-4 8-8 8-8-8-8-8z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                    <path d="M9 9l-2-2M15 9l2-2M9 15l-2 2M15 15l2 2"/>
+                </svg>
+                <span class="organic-card-title">Complex Rules</span>
+                <p class="organic-card-text">The intricate mechanics of sowing and capturing beads create a steep learning curve for modern, unassisted players.</p>
+            </div>
+
+            <!-- Card 3 -->
+            <div class="organic-card">
+                <svg stroke="var(--accent-terracotta)" stroke-width="1.5" fill="none" width="42px" viewBox="0 0 24 24" class="mb-2">
+                    <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" stroke-linejoin="round"/>
+                    <path d="M22 12a10 10 0 11-20 0 10 10 0 0120 0z" stroke-dasharray="4 4"/>
+                </svg>
+                <span class="organic-card-title">Lack of Engagement</span>
+                <p class="organic-card-text">Without interactive feedback, younger generations struggle to maintain focus during long, traditional gameplay sessions.</p>
+            </div>
+
+            <!-- Card 4 -->
+            <div class="organic-card">
+                <svg stroke="var(--accent-terracotta)" stroke-width="1.5" fill="none" width="42px" viewBox="0 0 24 24" class="mb-2">
+                    <path d="M12 4c-4.4 0-8 3.6-8 8s3.6 8 8 8 8-3.6 8-8-3.6-8-8-8z"/>
+                    <path d="M12 8v4l3 3"/>
+                    <path d="M16 4l2-2M8 4l-2-2"/>
+                </svg>
+                <span class="organic-card-title">Missed Cognition</span>
+                <p class="organic-card-text">The mental math and strategic benefits are lost when children abandon the game due to frustration or rule confusion.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- 2. Solution Section (Heritage Artifact Table) -->
+    <section id="solution" class="py-24 pt-32 -mt-10">
+        <div class="px-6 lg:px-8">
+            <div class="text-center mb-8">
+                <h3 class="playfair font-bold text-3xl" style="color: var(--text-dark);">
+                    The Evolution of Play
+                </h3>
+                <div style="width:60px; height:2px; background: var(--accent-gold); margin: 15px auto 0 auto;"></div>
+            </div>
+            
+            <div class="table-wrapper">
+                <div class="overflow-x-auto">
+                    <table class="heritage-table">
+                        <thead>
+                            <tr>
+                                <th>Feature</th>
+                                <th>Traditional Board</th>
+                                <th class="hero-col">Smart Board</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Rule Enforcement</td>
+                                <td>Manual / Memory based</td>
+                                <td class="hero-col">Automated Real-time</td>
+                            </tr>
+                            <tr>
+                                <td>Learning Curve</td>
+                                <td>Steep (High friction)</td>
+                                <td class="hero-col">Gentle (Light guided)</td>
+                            </tr>
+                            <tr>
+                                <td>Solo Play</td>
+                                <td>Impossible</td>
+                                <td class="hero-col">Supported (AI Mode)</td>
+                            </tr>
+                            <tr>
+                                <td>Material Aesthetic</td>
+                                <td>Wood & Shells</td>
+                                <td class="hero-col">Wood, Shells & Hidden Tech</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 3. Key Features Section -->
+    <section id="features" class="py-24 pt-32 -mt-10">
+        <!-- Heading -->
+        <div class="heritage-badge-container">
+            <span class="heritage-badge-line left"></span>
+            <span class="heritage-badge-text" style="font-size: 2.8rem; letter-spacing: 3px;">KEY FEATURES</span>
+            <span class="heritage-badge-line right"></span>
+        </div>
+
+        <div class="features-grid">
+            <!-- Card 1 -->
+            <div class="organic-card">
+                <svg stroke="var(--accent-terracotta)" stroke-width="1.5" fill="none" width="38px" height="38px" viewBox="0 0 24 24">
+                    <path d="M12 2L12 6M12 18L12 22M4.9 4.9L7.7 7.7M16.3 16.3L19.1 19.1M2 12L6 12M18 12L22 12M4.9 19.1L7.7 16.3M16.3 7.7L19.1 4.9"/>
+                    <circle cx="12" cy="12" r="4"/>
+                </svg>
+                <span class="feature-title">LED Bead Indicators</span>
+                <p class="feature-text">Subtle ambient lights housed in each pit guide movement and show ownership.</p>
+            </div>
+            <!-- Card 2 -->
+            <div class="organic-card">
+                <svg stroke="var(--accent-terracotta)" stroke-width="1.5" fill="none" width="38px" height="38px" viewBox="0 0 24 24">
+                    <rect x="3" y="4" width="18" height="16" rx="2"/>
+                    <path d="M12 4v16"/>
+                    <path d="M10 8h4M10 12h4M10 16h4"/>
+                </svg>
+                <span class="feature-title">Foldable Rosewood</span>
+                <p class="feature-text">Premium carved wood with a central hinge for easy portability and safe storage.</p>
+            </div>
+            <!-- Card 3 -->
+            <div class="organic-card">
+                <svg stroke="var(--accent-terracotta)" stroke-width="1.5" fill="none" width="38px" height="38px" viewBox="0 0 24 24">
+                    <rect x="2" y="6" width="20" height="12" rx="2"/>
+                    <path d="M6 12h12"/>
+                    <circle cx="12" cy="12" r="2"/>
+                </svg>
+                <span class="feature-title">Interactive Screen</span>
+                <p class="feature-text">A crisp, minimalist display showing scores, current player, and game mode.</p>
+            </div>
+            <!-- Card 4 -->
+            <div class="organic-card">
+                <svg stroke="var(--accent-terracotta)" stroke-width="1.5" fill="none" width="38px" height="38px" viewBox="0 0 24 24">
+                    <rect x="6" y="4" width="12" height="16" rx="2"/>
+                    <path d="M10 2h4M12 8v8M10 12h4"/>
+                </svg>
+                <span class="feature-title">Battery Operated</span>
+                <p class="feature-text">Rechargeable Li-ion battery supporting hours of uninterrupted continuous play.</p>
+            </div>
+            <!-- Card 5 -->
+            <div class="organic-card">
+                <svg stroke="var(--accent-terracotta)" stroke-width="1.5" fill="none" width="38px" height="38px" viewBox="0 0 24 24">
+                    <circle cx="8" cy="10" r="3"/>
+                    <path d="M4 18c0-2.2 1.8-4 4-4h0c2.2 0 4 1.8 4 4"/>
+                    <circle cx="16" cy="10" r="3"/>
+                    <path d="M12 18c0-2.2 1.8-4 4-4h0c2.2 0 4 1.8 4 4"/>
+                </svg>
+                <span class="feature-title">Dual-Player Mode</span>
+                <p class="feature-text">Designed for traditional 1v1 gameplay, allowing two players to compete locally.</p>
+            </div>
+            <!-- Card 6 -->
+            <div class="organic-card">
+                <svg stroke="var(--accent-terracotta)" stroke-width="1.5" fill="none" width="38px" height="38px" viewBox="0 0 24 24">
+                    <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" stroke-linejoin="round"/>
+                </svg>
+                <span class="feature-title">Zero-Latency Response</span>
+                <p class="feature-text">Instant visual feedback ensures seamless gameplay without interrupting the flow.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- 4. Technology Section (Under the Wood) -->
+    <section id="technology" class="py-24 pt-32 -mt-10">
+        <!-- Heading -->
+        <div class="heritage-badge-container">
+            <span class="heritage-badge-line left" style="width: 60px;"></span>
+            <span class="heritage-badge-text" style="font-size: 2.5rem;">UNDER THE WOOD</span>
+            <span class="heritage-badge-line right" style="width: 60px;"></span>
+        </div>
+
+        <div class="hardware-layout">
+            <!-- Left: Hardware Stack -->
+            <div class="hardware-stack">
+                <!-- Card 1 -->
+                <div class="hardware-card">
+                    <div class="hardware-img-wrapper">
+                        <img src="assets/esp32.png" alt="ESP32 Microcontroller">
+                    </div>
+                    <div>
+                        <span class="hw-title">Core Processor</span>
+                        <p class="hw-text">ESP32 microcontroller managing state logic, I/O processing, and display rendering at high speeds.</p>
+                    </div>
+                </div>
+                <!-- Card 2 -->
+                <div class="hardware-card">
+                    <div class="hardware-img-wrapper">
+                        <img src="assets/YOUR_NEW_SENSOR_MATRIX_IMAGE.jpg" alt="28-Point Sensor Matrix">
+                    </div>
+                    <div>
+                        <span class="hw-title">Sensor Matrix</span>
+                        <p class="hw-text">Precision IR bead counters embedded cleanly in the 14 primary pits for exact physical state mapping.</p>
+                    </div>
+                </div>
+                <!-- Card 3 -->
+                <div class="hardware-card">
+                    <div class="hardware-img-wrapper">
+                        <img src="assets/hardware_exploded.png" alt="Exploded Architecture View">
+                    </div>
+                    <div>
+                        <span class="hw-title">Layered Architecture</span>
+                        <p class="hw-text">Addressable RGB LEDs paired with a high-contrast IPS LCD module integrated flush with the wood grain.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: State Logic Box -->
+            <div class="state-logic-box">
+                <span class="logic-title">The State Logic</span>
+                
+                <div class="logic-step">
+                    <div class="logic-badge">1</div>
+                    <div>
+                        <h4 class="logic-step-title">Detection</h4>
+                        <p class="logic-step-text">Sensors read the pickup of beads from a specific pit.</p>
+                    </div>
+                </div>
+                <div class="logic-step">
+                    <div class="logic-badge">2</div>
+                    <div>
+                        <h4 class="logic-step-title">Validation</h4>
+                        <p class="logic-step-text">Microcontroller checks move legality against Pallanguzhi rule sets.</p>
+                    </div>
+                </div>
+                <div class="logic-step">
+                    <div class="logic-badge">3</div>
+                    <div>
+                        <h4 class="logic-step-title">Illumination</h4>
+                        <p class="logic-step-text">LEDs light up sequentially predicting the drop path for the user.</p>
+                    </div>
+                </div>
+                <div class="logic-step">
+                    <div class="logic-badge">4</div>
+                    <div>
+                        <h4 class="logic-step-title">State Update</h4>
+                        <p class="logic-step-text">LCD updates scores and switches turns upon successful play completion.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 5. Case Study Section -->
+    <section id="case-study" class="py-24 pt-32 -mt-10">
+        <div class="case-study-header">
+            <h1 class="cs-h1">Designing with the Masters</h1>
+            <p class="cs-subtitle">A deep dive into our field research with "Amma" - translating generations of physical, tactile knowledge into digital sensor parameters.</p>
+        </div>
+
+        <div class="case-study-grid">
+            <!-- Left: Evidence Box -->
+            <div class="evidence-box">
+                <div class="video-frame">
+                    <img src="assets/case_study.png" alt="WhatsApp Video Call Field Research">
+                    <div class="video-caption">
+                        <span class="live-dot"></span>
+                        Live Session: Rule Verification
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Insight Cards -->
+            <div class="insight-column">
+                <!-- Insight 1 -->
+                <div class="insight-card">
+                    <div class="insight-icon-badge">
+                        <svg width="24" height="24" stroke="var(--accent-terracotta)" stroke-width="1.5" fill="none" viewBox="0 0 24 24">
+                            <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="insight-title">Tactile Authenticity</h3>
+                        <p class="insight-text">Amma emphasized that the 'feel' of the seeds and the sound they make when dropped is just as important as the rules. This directly influenced our decision to use real cowrie shells and carved rosewood.</p>
+                    </div>
+                </div>
+                <!-- Insight 2 -->
+                <div class="insight-card">
+                    <div class="insight-icon-badge">
+                        <svg width="24" height="24" stroke="var(--accent-terracotta)" stroke-width="1.5" fill="none" viewBox="0 0 24 24">
+                            <path d="M12 2v20M8 6v12M16 6v12M4 10v4M20 10v4"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="insight-title">The 'Sowing' Rhythm</h3>
+                        <p class="insight-text">Watching her demonstrate the sowing motion revealed subtle hand movements and pacing that a manual could never capture. We designed the LED guidance to mimic her exact physical rhythm.</p>
+                    </div>
+                </div>
+                <!-- Insight 3 -->
+                <div class="insight-card">
+                    <div class="insight-icon-badge">
+                        <svg width="24" height="24" stroke="var(--accent-terracotta)" stroke-width="1.5" fill="none" viewBox="0 0 24 24">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                            <circle cx="9" cy="7" r="4"/>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="insight-title">Preserving Communal Play</h3>
+                        <p class="insight-text">The interview revealed that Pallanguzhi was historically a deeply communal game. Our 'Dual-Player Mode' was designed specifically to preserve this face-to-face social interaction.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 6. Impact Section (Bento Grid) -->
+    <section id="impact" class="py-24 pt-32 -mt-10">
+        <!-- Heading -->
+        <div class="heritage-badge-container">
+            <span class="heritage-badge-line left" style="width: 60px;"></span>
+            <span class="heritage-badge-text" style="font-size: 2.5rem;">IMPACT</span>
+            <span class="heritage-badge-line right" style="width: 60px;"></span>
+        </div>
+
+        <div class="bento-grid">
+            <!-- Card 1 (HERO) -->
+            <div class="bento-card bento-hero">
+                <div class="bento-icon-badge">
+                    <svg width="22" height="22" stroke="#FFFDF9" stroke-width="1.5" fill="none" viewBox="0 0 24 24">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                    </svg>
+                </div>
+                <h3 class="bento-title">Preserves Tamil Heritage</h3>
+                <p class="bento-text">Brings traditional Pallanguzhi to younger generations, ensuring a 2,000-year-old cultural legacy continues to thrive in the modern world.</p>
+            </div>
+            
+            <!-- Card 2 -->
+            <div class="bento-card">
+                <div class="bento-icon-badge">
+                    <svg width="22" height="22" stroke="var(--accent-terracotta)" stroke-width="1.5" fill="none" viewBox="0 0 24 24">
+                        <path d="M9 18h6M10 22h4M12 2a5 5 0 00-5 5c0 1.9 1.1 3.5 2.6 4.3.4.2.7.7.7 1.2v1.5a1 1 0 001 1h2a1 1 0 001-1v-1.5c0-.5.3-1 .7-1.2A5 5 0 0012 2z"/>
+                    </svg>
+                </div>
+                <h3 class="bento-title">Easy Learning</h3>
+                <p class="bento-text">Step-by-step light guidance helps beginners learn the rules effortlessly.</p>
+            </div>
+
+            <!-- Card 3 -->
+            <div class="bento-card">
+                <div class="bento-icon-badge">
+                    <svg width="22" height="22" stroke="var(--accent-terracotta)" stroke-width="1.5" fill="none" viewBox="0 0 24 24">
+                        <path d="M22 11.08V12a10 10 0 11-5.93-9.14M22 4L12 14.01l-3-3"/>
+                    </svg>
+                </div>
+                <h3 class="bento-title">Immediate Feedback</h3>
+                <p class="bento-text">Mistakes are detected and explained instantly to keep the game flowing.</p>
+            </div>
+
+            <!-- Card 4 -->
+            <div class="bento-card">
+                <div class="bento-icon-badge">
+                    <svg width="22" height="22" stroke="var(--accent-terracotta)" stroke-width="1.5" fill="none" viewBox="0 0 24 24">
+                        <path d="M12 4c-4.4 0-8 3.6-8 8s3.6 8 8 8 8-3.6 8-8-3.6-8-8-8zM12 8v4l3 3"/>
+                    </svg>
+                </div>
+                <h3 class="bento-title">Builds Skills</h3>
+                <p class="bento-text">Supports counting, concentration, prediction, and strategic thinking.</p>
+            </div>
+
+            <!-- Card 5 -->
+            <div class="bento-card">
+                <div class="bento-icon-badge">
+                    <svg width="22" height="22" stroke="var(--accent-terracotta)" stroke-width="1.5" fill="none" viewBox="0 0 24 24">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                        <circle cx="9" cy="7" r="4"/>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                    </svg>
+                </div>
+                <h3 class="bento-title">Inclusive Gameplay</h3>
+                <p class="bento-text">Allows children and first-time players to learn without a teacher.</p>
+            </div>
+
+            <!-- Card 6 -->
+            <div class="bento-card">
+                <div class="bento-icon-badge">
+                    <svg width="22" height="22" stroke="var(--accent-terracotta)" stroke-width="1.5" fill="none" viewBox="0 0 24 24">
+                        <rect x="4" y="4" width="16" height="16" rx="2" ry="2"/>
+                        <path d="M4 12h16M12 4v16"/>
+                    </svg>
+                </div>
+                <h3 class="bento-title">Modern + Traditional</h3>
+                <p class="bento-text">Combines cultural gameplay with interactive technology.</p>
+            </div>
+
+            <!-- Card 7 -->
+            <div class="bento-card">
+                <div class="bento-icon-badge">
+                    <svg width="22" height="22" stroke="var(--accent-terracotta)" stroke-width="1.5" fill="none" viewBox="0 0 24 24">
+                        <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
+                    </svg>
+                </div>
+                <h3 class="bento-title">Portable & Reusable</h3>
+                <p class="bento-text">Foldable design makes it suitable for homes, schools, and exhibitions.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- 7. NEW: Team Section (NextTech 007) -->
+    <section id="team" class="py-24 pt-32 -mt-10">
+        
+        <!-- TEAM LEADER -->
+        <h2 class="team-heading">TEAM LEADER</h2>
+        <div class="team-leader-container">
+            <div class="team-card team-leader-card">
+                <div class="team-photo-frame">
+                    <img src="assets/anusha.jpg" alt="Anusha Karki">
+                </div>
+                <h3 class="team-name">Anusha Karki</h3>
+                <p class="team-role">Team Leader · Cultural Research Lead · UI/UX Designer</p>
+                <p class="team-inst">Rathinam Technical Campus</p>
+                <div class="team-skill-tags">
+                    <span class="team-skill-pill">Project Architecture</span>
+                    <span class="team-skill-pill">Frontend UX</span>
+                    <span class="team-skill-pill">Domain Research</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- CORE ENGINEERING TEAM -->
+        <h2 class="team-heading">CORE ENGINEERING TEAM</h2>
+        <div class="core-team-grid">
+            
+            <!-- Member 1: Om Prakash -->
+            <div class="team-card">
+                <div class="team-photo-frame">
+                    <img src="assets/omprakash.jpg" alt="Om Prakash Mandal">
+                </div>
+                <h3 class="team-name">Om Prakash Mandal</h3>
+                <p class="team-role">Game Engine Developer · Embedded Software Lead · Pitcher</p>
+                <p class="team-inst">Rathinam Technical Campus</p>
+                <div class="team-skill-tags">
+                    <span class="team-skill-pill">Backend & Cloud</span>
+                    <span class="team-skill-pill">Game Engine</span>
+                </div>
+            </div>
+
+            <!-- Member 2: Ashish -->
+            <div class="team-card">
+                <div class="team-photo-frame">
+                    <img src="assets/ashish.jpg" alt="Ashish Kumar Shah Gupta">
+                </div>
+                <h3 class="team-name">Ashish Kumar Shah Gupta</h3>
+                <p class="team-role">AI/ML Developer · Data Analyst · Learning Systems Designer</p>
+                <p class="team-inst">Rathinam Technical Campus</p>
+                <div class="team-skill-tags">
+                    <span class="team-skill-pill">AI/ML Modeling</span>
+                    <span class="team-skill-pill">Data Analysis</span>
+                </div>
+            </div>
+
+            <!-- Member 3: Laxman -->
+            <div class="team-card">
+                <div class="team-photo-frame">
+                    <img src="assets/laxman.jpg" alt="Laxman Chaudhary">
+                </div>
+                <h3 class="team-name">Laxman Chaudhary</h3>
+                <p class="team-role">Testing Lead · Quality Assurance · Technical Support</p>
+                <p class="team-inst">Rathinam Technical Campus</p>
+                <div class="team-skill-tags">
+                    <span class="team-skill-pill">QA Testing</span>
+                    <span class="team-skill-pill">Tech Support</span>
+                </div>
+            </div>
+
+            <!-- Member 4: Piruthvi -->
+            <div class="team-card">
+                <div class="team-photo-frame">
+                    <img src="assets/piruthvi.jpg" alt="Piruthvi Saran A">
+                </div>
+                <h3 class="team-name">Piruthvi Saran A</h3>
+                <p class="team-role">Hardware Lead · IoT Integration · Power Systems</p>
+                <p class="team-inst">Rathinam Technical Campus</p>
+                <div class="team-skill-tags">
+                    <span class="team-skill-pill">Hardware & IoT</span>
+                    <span class="team-skill-pill">Power Systems</span>
+                </div>
+            </div>
+
+            <!-- Member 5: Mukesh -->
+            <div class="team-card">
+                <div class="team-photo-frame">
+                    <img src="assets/YOUR_NEW_MUKESH_IMAGE.jpg" alt="Mukesh M">
+                </div>
+                <h3 class="team-name">Mukesh M</h3>
+                <p class="team-role">Sensor Systems Engineer · Mechanical Design · Foldable Mechanism</p>
+                <p class="team-inst">Rathinam Technical Campus</p>
+                <div class="team-skill-tags">
+                    <span class="team-skill-pill">Embedded Systems</span>
+                    <span class="team-skill-pill">Mechanical Design</span>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- 8. Project Mentors Section -->
+    <section id="mentor" class="py-24 pt-32 -mt-10">
+        
+        <div class="mentors-badge-container">
+            <div class="mentors-badge">
+                <svg width="16" height="16" stroke="var(--accent-terracotta)" stroke-width="1.5" fill="none" viewBox="0 0 24 24">
+                    <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+                    <path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5"/>
+                </svg>
+                Institutional Guidance
+            </div>
+        </div>
+
+        <div class="mentors-header">
+            <h2 class="mentors-h2">Project Mentors</h2>
+            <p class="mentors-subtitle">Distinguished faculty leadership providing technical direction, competitive hackathon strategy, and domain expertise.</p>
+        </div>
+
+        <div class="mentors-grid">
+            <!-- Mentor 1 -->
+            <div class="mentor-card">
+                <div class="portrait-frame">
+                    <img src="assets/mentor1.jpg" alt="Er. Gajendran Parthasarathi">
+                </div>
+                <span class="mentor-role-pill">Project Mentor</span>
+                <h3 class="mentor-name">Er. Gajendran Parthasarathi</h3>
+                <p class="mentor-title-txt">Head – School of Design and Innovation</p>
+                <p class="mentor-inst">Rathinam Technical Campus</p>
+            </div>
+
+            <!-- Mentor 2 -->
+            <div class="mentor-card">
+                <div class="portrait-frame">
+                    <img src="assets/YOUR_NEW_MUTHUSAMY_IMAGE.jpg" alt="Mr. K. Muthusamy">
+                </div>
+                <span class="mentor-role-pill">Technical Mentor</span>
+                <h3 class="mentor-name">Mr. K. Muthusamy</h3>
+                <p class="mentor-title-txt">Head – Technical Competitions and Hackathons</p>
+                <p class="mentor-inst">Rathinam Technical Campus</p>
+            </div>
+        </div>
+
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-[#3D2314] text-[var(--bg-color)] py-12 border-t border-[var(--accent-gold)]">
+        <div class="max-w-7xl mx-auto px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center playfair">
+            <div class="flex items-center mb-6 md:mb-0">
+                <img src="assets/logo.jpg" alt="Logo" class="h-10 w-auto rounded opacity-90 mr-4 p-1 bg-white">
+                <span class="font-bold text-xl tracking-wide text-[var(--accent-gold)]">Pallanguzhi State Machine</span>
+            </div>
+            <div class="text-sm text-[var(--bg-color)]/70 text-center md:text-right" style="font-family: 'Lora', serif;">
+                <p>&copy; 2026 Entanglex / Student Innovation. All rights reserved.</p>
+                <p class="mt-1">Preserving Heritage Through Technology.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Mobile Menu Script -->
+    <script>
+        const mobileMenu = document.getElementById('mobile-menu');
+        const hamburgerBtn = document.getElementById('hamburger-btn');
+        const closeMenuBtn = document.getElementById('close-menu');
+        const mobileLinks = document.querySelectorAll('.mobile-link');
+        const logoLink = document.getElementById('mobile-logo-link');
+
+        function openMenu() {
+            mobileMenu.classList.remove('hidden');
+            setTimeout(() => {
+                mobileMenu.classList.remove('opacity-0');
+            }, 10);
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeMenu() {
+            mobileMenu.classList.add('opacity-0');
+            setTimeout(() => {
+                mobileMenu.classList.add('hidden');
+            }, 300);
+            document.body.style.overflow = 'auto';
+        }
+
+        hamburgerBtn.addEventListener('click', openMenu);
+        closeMenuBtn.addEventListener('click', closeMenu);
+        if(logoLink) logoLink.addEventListener('click', closeMenu);
+
+        mobileLinks.forEach(link => {
+            link.addEventListener('click', closeMenu);
+        });
+    </script>
+</body>
+</html>
